@@ -29,9 +29,7 @@ struct ibv_informations exchange_ibv_info(uint32_t qpnum){
     struct sockaddr_in srcAddr;
     struct sockaddr_in dstAddr;
     int dstAddrSize = sizeof(dstAddr);
-    int status;
     int numrcv;
-    char buf[1024];
 
      // Part of Socket Connection
     bzero((char *)&srcAddr, sizeof(srcAddr));

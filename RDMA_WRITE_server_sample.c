@@ -91,7 +91,7 @@ int main(int argc, char **argv)
         .min_rnr_timer          = 0,
         .ah_attr                = {
             .is_global          = 0,
-            .dlid               = 16,
+            .dlid               = "client's lid",
             .sl                 = 0,
             .src_path_bits      = 0,
             .port_num           = 1,

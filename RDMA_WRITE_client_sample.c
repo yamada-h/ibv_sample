@@ -86,7 +86,7 @@ int main(int argc, char **argv)
         .min_rnr_timer          = 0,
         .ah_attr                = {
             .is_global          = 0,
-            .dlid               = 17,
+            .dlid               = "server's lid",
             .sl                 = 0,
             .src_path_bits      = 0,
             .port_num           = 1,
@@ -128,8 +128,8 @@ int main(int argc, char **argv)
        .num_sge    = 1,
        .opcode     = IBV_WR_RDMA_WRITE,
        .send_flags = 0,
-       .wr.rdma.remote_addr = 0x10ca3a0,
-       .wr.rdma.rkey = 2147551506
+       .wr.rdma.remote_addr = "server's memory address",
+       .wr.rdma.rkey = "server's rkey"
    };
 
    struct ibv_send_wr *bad_wr;
