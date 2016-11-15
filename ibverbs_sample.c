@@ -14,6 +14,8 @@ struct ib_addr {
     uint8_t port_num;
     uint16_t qp_num;
     uint32_t psn;
+    uint32_t rkey;
+    uint64_t memaddr;
 };
 
 int main(int argc, char *argv[]) {
@@ -60,6 +62,8 @@ int main(int argc, char *argv[]) {
   char *buf = malloc(SIZE);
   struct ibv_mr *mr = ibv_reg_mr(pd, buf, SIZE, IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
   printf("local key=%d, remote key=%d\n", mr->lkey, mr->rkey);
+  my_addr.memaddr = (uint64_t)buf;
+  my_addr.rkey = mr->rkey;
 
   struct ibv_qp_init_attr attr = {
     .send_cq    = send_cq,
@@ -125,7 +129,12 @@ int main(int argc, char *argv[]) {
         .s_addr = INADDR_ANY
       }
     };
-    bind(sock_listen, (struct sockaddr *)&sock_addr, sizeof(struct sockaddr_in));
+    errno = 0;
+    ret = bind(sock_listen, (struct sockaddr *)&sock_addr, sizeof(struct sockaddr_in));
+    if (ret != 0) {
+      printf("Failed to bind: %s\n", strerror(errno));
+      return -1;
+    }
 
     errno = 0;
     ret = listen(sock_listen, 1);
@@ -189,6 +198,47 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   printf("Success: RTR to RTS\n");
+
+  if (is_server) {
+    struct ibv_recv_wr recv_wr = {
+      .wr_id = 1,
+      .next = NULL,
+      .sg_list = NULL,
+      .num_sge = 0,
+    };
+    struct ibv_recv_wr *bad_wr;
+    ret = ibv_post_recv(qp, &recv_wr, &bad_wr);
+    if (ret != 0) {
+      printf("Failed to ibv_post_recv: %s\n", strerror(ret));
+      return -1;
+    }
+
+    struct ibv_wc wc[1];
+    do {
+      ret = ibv_poll_cq(recv_cq, 1, wc);
+    } while (ret == -1);
+    printf("Recv RDMA_WRITE with IMM: %x\n", wc[0].imm_data);
+  }
+  else {
+    struct ibv_send_wr send_wr = {
+      .wr_id = 1,
+      .next = NULL,
+      .sg_list = NULL,
+      .num_sge = 0,
+      .opcode = IBV_WR_RDMA_WRITE_WITH_IMM,
+      .imm_data = 0x12345678,
+      .wr.rdma = {
+        .remote_addr = remote_addr.memaddr,
+        .rkey = remote_addr.rkey,
+      },
+    };
+    struct ibv_send_wr *bad_wr;
+    ret = ibv_post_send(qp, &send_wr, &bad_wr);
+    if (ret != 0) {
+      printf("Failed to ibv_post_send: %s\n", strerror(ret));
+      return -1;
+    }
+  }
 
   ibv_destroy_qp(qp);
   ibv_dereg_mr(mr);
