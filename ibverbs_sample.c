@@ -95,16 +95,6 @@ int main(int argc, char *argv[]) {
   }
   printf("Success: RESET to INIT\n");
 
-  struct ibv_ah_attr ah_attr = {
-    .dlid = port_attr.lid,
-    .port_num = my_addr.port_num,
-  };
-  struct ibv_ah *ah = ibv_create_ah(pd, &ah_attr);
-  if (ah == NULL) {
-    printf("Failed to create ah\n");
-    return -1;
-  }
-
   // exchange ib_addr
   my_addr.psn = 0;
   struct ib_addr remote_addr;
@@ -171,6 +161,16 @@ int main(int argc, char *argv[]) {
     close(sock);
   }
   printf("Remote: LID=0x%04" PRIx16 ", Port=%d, QP=%d, Memory=0x%016" PRIx64 ", rkey=0x%08" PRIx32 "\n", remote_addr.lid, remote_addr.port_num, remote_addr.qp_num, remote_addr.memaddr, remote_addr.rkey);
+
+  struct ibv_ah_attr ah_attr = {
+    .dlid = remote_addr.lid,
+    .port_num = remote_addr.port_num,
+  };
+  struct ibv_ah *ah = ibv_create_ah(pd, &ah_attr);
+  if (ah == NULL) {
+    printf("Failed to create ah\n");
+    return -1;
+  }
 
   struct ibv_qp_attr rtr_attr = {
     .qp_state = IBV_QPS_RTR,
